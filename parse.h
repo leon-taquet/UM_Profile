@@ -1,5 +1,8 @@
 #ifndef PARSE_INCLUDED
 #define PARSE_INCLUDED
+
+#include "mainmem.h"
+
 #include <stdio.h>
 #include <seq.h>
 #include <stdint.h>
@@ -17,7 +20,8 @@ typedef struct load_value {
     uint32_t r, value;
 } load_value;
 
-extern Seq_T parse_instructions(FILE* fp);
+//extern Seq_T parse_instructions(FILE* fp);
+extern seg_t *parse_instructions(FILE* fp);
 
 extern Um_opcode parse_opcode(uint32_t instruction);
 

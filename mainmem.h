@@ -8,7 +8,12 @@
 
 typedef struct MainMem *MainMem;
 
-extern T MainMem_new(Seq_T zero_segment);
+typedef struct seg_t{
+        uint32_t *seg;
+        uint32_t size;
+} seg_t;
+
+extern T MainMem_new(seg_t * zero_segment);
 extern void MainMem_free(T* mem);
 
 extern void     MainMem_unmap(T mem, uint32_t idx);

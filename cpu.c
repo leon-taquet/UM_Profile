@@ -127,6 +127,7 @@ void op_load_program(T cpu, three_register params)
 bool fetch_decode_execute(T cpu)
 {
     uint32_t instruction = MainMem_next_instruction(cpu->mem);
+
     switch (parse_opcode(instruction)) {
         case OUT:
             op_output(parse_three_register(instruction));

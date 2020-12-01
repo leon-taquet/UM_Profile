@@ -1,11 +1,15 @@
 #include "parse.h"
 
+#include <stdlib.h>
 #include <bitpack.h>
+
 
 #define LENGTH_HINT 100
 
-Seq_T parse_instructions(FILE* fp) 
+//Seq_T parse_instructions(FILE* fp) 
+seg_t *parse_instructions(FILE* fp) 
 {
+
     Seq_T result = Seq_new(LENGTH_HINT);
 
     int currentInt = fgetc(fp);
@@ -29,7 +33,20 @@ Seq_T parse_instructions(FILE* fp)
         currentInt = fgetc(fp);
     }
 
-    return result;
+    int length = Seq_length(result);
+    uint32_t *r = malloc(sizeof(uint32_t)*length); 
+
+    for (int i = 0; i < length; ++i) {                 
+            r[i] = (uint32_t)(uintptr_t)Seq_get(result, i);
+    }
+
+    seg_t *zero_seg = malloc(sizeof(seg_t));
+
+    zero_seg->seg = r;
+    zero_seg->size = length;
+
+    Seq_free(&result);
+    return zero_seg;
 }
 
 Um_opcode parse_opcode(uint32_t instruction)
