@@ -38,8 +38,9 @@ void MainMem_free(T* mem)
     assert(mem != NULL && *mem != NULL);
 
     Seq_free(&((*mem)->unmapped));
-    
-    for (int i = 0; i < Seq_length((*mem)->segments); ++i) {
+
+    int length = Seq_length((*mem)->segments);
+    for (int i = 0; i < length; ++i) {
         Seq_T segment = (Seq_T)Seq_get((*mem)->segments, i);
         if (segment != NULL) {
             Seq_free(&segment);
@@ -97,7 +98,8 @@ void MainMem_load_program(T mem, uint32_t segment_idx, uint32_t new_counter)
     if (segment_idx != (uint32_t)0) {
         Seq_T to_cpy = (Seq_T)Seq_get(mem->segments, segment_idx);
         Seq_T duplicate = Seq_new(Seq_length(to_cpy));
-        for (int i = 0; i < Seq_length(to_cpy); ++i) {
+        int length = Seq_length(to_cpy);
+        for (int i = 0; i < length; ++i) {
             Seq_addhi(duplicate, Seq_get(to_cpy, i));
         }
 
@@ -137,7 +139,6 @@ void test_unmap()
         }
         Seq_addlo(totest->segments, addition);
     }
-
     for (int i = 0; i < Seq_length(totest->segments); ++i) {
         MainMem_unmap(totest, i);
 
