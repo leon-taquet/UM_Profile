@@ -16,6 +16,8 @@ struct MainMem {
     Seq_T unmapped;
     Seq_T segments;
 
+    seg_t *zero_seg;
+
     uint32_t counter;
 };
 
@@ -30,7 +32,9 @@ T MainMem_new(seg_t *zero_segment)
     result->unmapped = Seq_new(UNMAPPED_HINT);
     result->segments = Seq_new(SEGMENTS_HINT);
 
-    Seq_addlo(result->segments, (void *)zero_segment);
+    Seq_addlo(result->segments, (void *)NULL);
+
+    result->zero_seg = zero_segment;
 
     result->counter = 0;
 
@@ -51,6 +55,8 @@ void MainMem_free(T* mem)
                 free(segment);
         }
     }
+    free((*mem)->zero_seg->seg);
+    free((*mem)->zero_seg);
     Seq_free(&((*mem)->segments));
     
     free(*mem);
@@ -101,11 +107,14 @@ seg_t *get_segment(T mem, uint32_t idx)
 
 void replace_zero_segment(T mem, seg_t *replacement)
 {
-    seg_t *old_zero = Seq_put(mem->segments, 0, replacement);
+    //seg_t *old_zero = Seq_put(mem->segments, 0, replacement);
+    seg_t *old_zero = mem->zero_seg;
+    
     if (old_zero != NULL) {
         free(old_zero->seg);
         free(old_zero);
     }
+    mem->zero_seg = replacement;
 }
 
 void MainMem_load_program(T mem, uint32_t segment_idx, 
@@ -134,10 +143,14 @@ void MainMem_write(T mem, uint32_t segment_idx, uint32_t word_idx,
 {
 //    Seq_put((Seq_T)Seq_get(mem->segments, segment_idx), word_idx,
 //        (void*)(uintptr_t)val);
-
-    seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
-    segment->seg[word_idx] = val;
-
+    if (segment_idx != 0){
+        seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
+        segment->seg[word_idx] = val;
+    }
+    else{
+        mem->zero_seg->seg[word_idx] = val;
+    }
+    
 }
 
 
@@ -146,12 +159,17 @@ uint32_t MainMem_read(T mem, uint32_t segment_idx, uint32_t word_idx)
 //    return (uint32_t)(uintptr_t)Seq_get(
 //        (Seq_T)Seq_get(mem->segments, segment_idx), word_idx
 //    );
-    seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
-    return segment->seg[word_idx];
-
+    if (segment_idx != 0){
+        seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
+        return segment->seg[word_idx];
+    }
+    else{
+        return mem->zero_seg->seg[word_idx];
+    }
 }
 
 uint32_t MainMem_next_instruction(T mem) 
 {
-    return MainMem_read(mem, 0, mem->counter++);
+    //return MainMem_read(mem, 0, mem->counter++);
+    return mem->zero_seg->seg[mem->counter++];
 }
