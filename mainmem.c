@@ -17,6 +17,7 @@ struct MainMem {
     Seq_T segments;
 
     seg_t *zero_seg;
+    seg_t *first_seg;
 
     uint32_t counter;
 };
@@ -33,8 +34,10 @@ T MainMem_new(seg_t *zero_segment)
     result->segments = Seq_new(SEGMENTS_HINT);
 
     Seq_addlo(result->segments, (void *)NULL);
+    Seq_addlo(result->segments, (void *)NULL);
 
     result->zero_seg = zero_segment;
+    result->first_seg = NULL;
 
     result->counter = 0;
 
@@ -57,6 +60,12 @@ void MainMem_free(T* mem)
     }
     free((*mem)->zero_seg->seg);
     free((*mem)->zero_seg);
+    if ((*mem)->first_seg->seg == NULL){
+        free((*mem)->first_seg->seg);
+    }
+    if ((*mem)->first_seg == NULL){
+        free((*mem)->first_seg);
+    }
     Seq_free(&((*mem)->segments));
     
     free(*mem);
@@ -65,17 +74,25 @@ void MainMem_free(T* mem)
 
 void MainMem_unmap(T mem, uint32_t idx)
 {
-    seg_t *segment = Seq_put(mem->segments, idx, (void*)NULL);
-    free(segment->seg);
-    free(segment);
-
+    if ( idx == 1 ) {
+        free(mem->first_seg->seg);
+        free(mem->first_seg);
+        mem->first_seg = NULL;
+    }
+    else{
+        seg_t *segment = Seq_put(mem->segments, idx, (void*)NULL);
+        free(segment->seg);
+        free(segment);
+    }
     Seq_addlo(mem->unmapped, (void*)(uintptr_t)idx);
 }
 
 uint32_t MainMem_map(T mem, uint32_t num)
 {
-    assert(~(uint32_t)0 > (uint32_t)Seq_length(mem->segments)
-        || Seq_length(mem->unmapped) != 0);
+    int num_segs = Seq_length(mem->segments);
+    int num_unmapped = Seq_length(mem->unmapped);
+    assert(~(uint32_t)0 > (uint32_t)num_segs
+           || num_unmapped != 0);
 
     //Seq_T addition = Seq_new(num);
     seg_t *addition = malloc(sizeof(seg_t));
@@ -83,27 +100,36 @@ uint32_t MainMem_map(T mem, uint32_t num)
 
 
     for (int i = 0; (uint32_t)i < num; ++i) {
-            //Seq_addlo(addition, (void*)(uintptr_t)(uint32_t)0);
             add_seg[i] = (uint32_t)0;
     }
 
     addition->seg = add_seg;
     addition->size = num;
 
-    if (Seq_length(mem->unmapped) > 0) {
-        int idx = (uint32_t)(uintptr_t)Seq_remlo(mem->unmapped); 
-        Seq_put(mem->segments, idx, (void*)addition);
-        return idx;
-    }
 
+    if (num_unmapped > 0) {
+        int idx = (uint32_t)(uintptr_t)Seq_remlo(mem->unmapped); 
+        if ( idx == 1 ){
+            mem->first_seg = addition;
+            return 1;
+        }
+        else{
+            Seq_put(mem->segments, idx, (void*)addition);
+            return idx;
+        }
+    }
+    if ( num_segs == 1 ) {
+        mem->first_seg = addition;
+        return 1;
+    }
     Seq_addhi(mem->segments, (void*)addition);
     return Seq_length(mem->segments) - 1;
 }
 
-seg_t *get_segment(T mem, uint32_t idx)
-{
-    return (seg_t *)Seq_get(mem->segments, idx);
-}
+/* seg_t *get_segment(T mem, uint32_t idx) */
+/* { */
+/*     return (seg_t *)Seq_get(mem->segments, idx); */
+/* } */
 
 void replace_zero_segment(T mem, seg_t *replacement)
 {
@@ -121,7 +147,13 @@ void MainMem_load_program(T mem, uint32_t segment_idx,
                           uint32_t new_counter)
 {
     if (segment_idx != (uint32_t)0) {
-        seg_t *to_cpy = (seg_t *)Seq_get(mem->segments, segment_idx);
+        seg_t *to_cpy;
+        if ( segment_idx == 1 ){
+            to_cpy = mem->first_seg;
+        }
+        else{
+            to_cpy = (seg_t *)Seq_get(mem->segments, segment_idx);
+        }
         int length = to_cpy->size; 
         seg_t *duplicate = malloc(sizeof(seg_t));
         uint32_t *dup_seg = malloc(sizeof(uint32_t) * length);
@@ -143,9 +175,12 @@ void MainMem_write(T mem, uint32_t segment_idx, uint32_t word_idx,
 {
 //    Seq_put((Seq_T)Seq_get(mem->segments, segment_idx), word_idx,
 //        (void*)(uintptr_t)val);
-    if (segment_idx != 0){
+    if (segment_idx > 1){
         seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
         segment->seg[word_idx] = val;
+    }
+    else if (segment_idx == 1){
+        mem->first_seg->seg[word_idx] = val;
     }
     else{
         mem->zero_seg->seg[word_idx] = val;
@@ -162,6 +197,9 @@ uint32_t MainMem_read(T mem, uint32_t segment_idx, uint32_t word_idx)
     if (segment_idx != 0){
         seg_t *segment = (seg_t *)Seq_get(mem->segments, segment_idx);
         return segment->seg[word_idx];
+    }
+    else if (segment_idx == 1){
+        return mem->first_seg->seg[word_idx];
     }
     else{
         return mem->zero_seg->seg[word_idx];

@@ -124,11 +124,13 @@ void op_load_program(T cpu, three_register params)
                                    registers[params.rc]);
 }
 
-bool fetch_decode_execute(T cpu)
+void fetch_decode_execute(T cpu)
 {
-    uint32_t instruction = MainMem_next_instruction(cpu->mem);
+    bool running = true;
 
-    switch (parse_opcode(instruction)) {
+    while ( running ){
+        uint32_t instruction = MainMem_next_instruction(cpu->mem);
+        switch (parse_opcode(instruction)) {
         case OUT:
             op_output(parse_three_register(instruction));
             break; 
@@ -169,11 +171,11 @@ bool fetch_decode_execute(T cpu)
             op_load_program(cpu, parse_three_register(instruction));
             break;
         case HALT:
-        default:
-            return false;
-    }
+            running = false;
+        }
+    };
 
-    return true;
+    
 }
 
 /********************************************************/

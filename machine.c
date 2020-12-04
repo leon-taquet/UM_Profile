@@ -10,7 +10,7 @@ void execute_program(FILE* fp)
     
     Cpu cpu = Cpu_new(mem);
 
-    while (fetch_decode_execute(cpu));
+    fetch_decode_execute(cpu);
 
     Cpu_free(&cpu);
 }
