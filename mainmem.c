@@ -12,14 +12,7 @@
 #define SEGMENTS_HINT 1000
 
 
-struct MainMem {
-    Seq_T unmapped;
-    Seq_T segments;
 
-    seg_t *zero_seg;
-
-    uint32_t counter;
-};
 
 
 

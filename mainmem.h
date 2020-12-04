@@ -13,6 +13,15 @@ typedef struct seg_t{
         uint32_t size;
 } seg_t;
 
+struct MainMem {
+    Seq_T unmapped;
+    Seq_T segments;
+
+    seg_t *zero_seg;
+
+    uint32_t counter;
+};
+
 extern T MainMem_new(seg_t * zero_segment);
 extern void MainMem_free(T* mem);
 

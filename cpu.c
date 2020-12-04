@@ -128,9 +128,15 @@ void fetch_decode_execute(T cpu)
 {
     bool running = true;
 
+    MainMem mem = cpu->mem;
+
     while ( running ){
-        uint32_t instruction = MainMem_next_instruction(cpu->mem);
-        switch (parse_opcode(instruction)) {
+        
+        //uint32_t instruction = MainMem_next_instruction(cpu->mem);
+
+        uint32_t instruction = mem->zero_seg->seg[mem->counter++];
+
+        switch ((Um_opcode)(instruction >> 28)) {
         case OUT:
             op_output(parse_three_register(instruction));
             break; 
