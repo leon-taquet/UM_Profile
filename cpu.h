@@ -12,7 +12,7 @@ typedef struct Cpu *Cpu;
 extern T Cpu_new(MainMem mem);
 extern void Cpu_free(T* cpu);
 
-extern bool fetch_decode_execute(T cpu);
+extern void fetch_decode_execute(T cpu);
 
 #undef T
 #endif
