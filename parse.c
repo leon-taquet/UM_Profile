@@ -68,7 +68,7 @@ three_register parse_three_register(uint32_t instruction)
     /* result.rb = (uint32_t)Bitpack_getu((uint64_t)instruction, 3, 3); */
     /* result.rc = (uint32_t)Bitpack_getu((uint64_t)instruction, 3, 0); */
     result.ra = (instruction & MASK_RA) >> 6;
-    result.rb = (instruction & MASK_RB) >> 3;
+    result.rb = (instruction & MASK_RB) >> 3; 
     result.rc = (instruction & MASK_RC);
 
     return result;

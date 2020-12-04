@@ -10,6 +10,12 @@
 
 #define T Cpu
 
+//static const uint32_t MASK_VALUE = (~(uint32_t)0 >> 7);
+static const uint32_t MASK_REG = ~(~(uint32_t)0 << 3);  
+static const uint32_t MASK_RC = MASK_REG;
+static const uint32_t MASK_RB = MASK_RC << 3;
+static const uint32_t MASK_RA = MASK_RB << 3; 
+
 uint32_t registers[N_REGISTERS];
 
 
@@ -39,21 +45,21 @@ void Cpu_free(T* cpu)
     *cpu = NULL;
 }
 
-void op_output(three_register params)
+void op_output(uint32_t instruction)
 {
-    printf("%c", (char)registers[params.rc]);
+    printf("%c", (char)registers[ (instruction & MASK_RC)]);
     
 }
 
-void op_map(T cpu, three_register params)
+void op_map(T cpu, uint32_t instruction)
 {
-    registers[params.rb] = MainMem_map(cpu->mem, 
-                                            registers[params.rc]);
+    registers[(instruction & MASK_RB) >> 3] = MainMem_map(cpu->mem, 
+                                       registers[ (instruction & MASK_RC)]);
 }
 
-void op_unmap(T cpu, three_register params)
+void op_unmap(T cpu, uint32_t instruction)
 {
-    MainMem_unmap(cpu->mem, registers[params.rc]);
+    MainMem_unmap(cpu->mem, registers[ (instruction & MASK_RC)]);
 }
 
 void op_loadvalue(load_value params)
@@ -61,67 +67,67 @@ void op_loadvalue(load_value params)
     registers[params.r] = params.value;
 }
 
-void op_cmov(three_register params)
+void op_cmov(uint32_t instruction)
 {
-    if (registers[params.rc] != (uint32_t)0) {
-        registers[params.ra] = registers[params.rb];
+    if (registers[ (instruction & MASK_RC)] != (uint32_t)0) {
+        registers[(instruction & MASK_RA) >> 6] = registers[(instruction & MASK_RB) >> 3];
     }
 }
 
-void op_sload(T cpu, three_register params)
+void op_sload(T cpu, uint32_t instruction)
 {
-    registers[params.ra] = MainMem_read(cpu->mem, 
-                                             registers[params.rb],
-                                             registers[params.rc]);
+    registers[(instruction & MASK_RA) >> 6] = MainMem_read(cpu->mem, 
+                                    registers[(instruction & MASK_RB) >> 3],
+                                    registers[ (instruction & MASK_RC)]);
 }
 
-void op_sstore(T cpu, three_register params)
+void op_sstore(T cpu, uint32_t instruction)
 {
     MainMem_write(cpu->mem, 
-                  registers[params.ra], 
-                  registers[params.rb], 
-                  registers[params.rc]);
+                  registers[(instruction & MASK_RA) >> 6], 
+                  registers[(instruction & MASK_RB) >> 3], 
+                  registers[ (instruction & MASK_RC)]);
 }
 
-void op_add(three_register params)
+void op_add(uint32_t instruction)
 {
-    registers[params.ra] = registers[params.rb] 
-                              + registers[params.rc];
+    registers[(instruction & MASK_RA) >> 6] = registers[(instruction & MASK_RB) >> 3] 
+                              + registers[(instruction & MASK_RC)];
 }   
 
 
-void op_multiply(three_register params)
+void op_multiply(uint32_t instruction)
 {
-    registers[params.ra] = registers[params.rb] 
-                              * registers[params.rc];
+    registers[(instruction & MASK_RA) >> 6] = registers[(instruction & MASK_RB) >> 3] 
+                              * registers[(instruction & MASK_RC)];
 }   
 
-void op_divide(three_register params)
+void op_divide(uint32_t instruction)
 {
-    registers[params.ra] = registers[params.rb] 
-                              / registers[params.rc];
+    registers[(instruction & MASK_RA) >> 6] = registers[(instruction & MASK_RB) >> 3] 
+                              / registers[(instruction & MASK_RC)];
 }   
 
-void op_nand(three_register params)
+void op_nand(uint32_t instruction)
 {
-    registers[params.ra] = ~(registers[params.rb]
-                                & registers[params.rc]);
+    registers[(instruction & MASK_RA) >> 6] = ~(registers[(instruction & MASK_RB) >> 3]
+                                & registers[(instruction & MASK_RC)]);
 }
 
-void op_input(three_register params)
+void op_input(uint32_t instruction)
 {
     uint32_t result = ~(uint32_t)0;
     int input = getc(stdin);
     if (input != EOF) {
         result = (uint32_t)(char)input;
     }
-    registers[params.rc] = result;
+    registers[(instruction & MASK_RC)] = result;
 }
 
-void op_load_program(T cpu, three_register params)
+void op_load_program(T cpu, uint32_t instruction)
 {
-    MainMem_load_program(cpu->mem, registers[params.rb], 
-                                   registers[params.rc]);
+    MainMem_load_program(cpu->mem, registers[(instruction & MASK_RB) >> 3],
+                                   registers[(instruction & MASK_RC)]);
 }
 
 void fetch_decode_execute(T cpu)
@@ -138,43 +144,43 @@ void fetch_decode_execute(T cpu)
 
         switch ((Um_opcode)(instruction >> 28)) {
         case OUT:
-            op_output(parse_three_register(instruction));
+            op_output(instruction);
             break; 
         case IN:
-            op_input(parse_three_register(instruction));
+            op_input(instruction);
             break;
         case ACTIVATE:
-            op_map(cpu, parse_three_register(instruction));
+            op_map(cpu, instruction);
             break; 
         case INACTIVATE:
-            op_unmap(cpu, parse_three_register(instruction));
+            op_unmap(cpu, instruction);
             break;
         case LV:
             op_loadvalue(parse_load_value(instruction));
             break;
         case CMOV:
-            op_cmov(parse_three_register(instruction));
+            op_cmov(instruction);
             break;
         case SLOAD:
-            op_sload(cpu, parse_three_register(instruction));
+            op_sload(cpu, instruction);
             break;
         case SSTORE:
-            op_sstore(cpu, parse_three_register(instruction));
+            op_sstore(cpu, instruction);
             break;
         case ADD:
-            op_add(parse_three_register(instruction));
+            op_add(instruction);
             break;
         case MUL:
-            op_multiply(parse_three_register(instruction));
+            op_multiply(instruction);
             break;
         case DIV:
-            op_divide(parse_three_register(instruction));
+            op_divide(instruction);
             break;
         case NAND:
-            op_nand(parse_three_register(instruction));
+            op_nand(instruction);
             break;
         case LOADP:
-            op_load_program(cpu, parse_three_register(instruction));
+            op_load_program(cpu, instruction);
             break;
         case HALT:
             running = false;
